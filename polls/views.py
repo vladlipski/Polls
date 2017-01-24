@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import F
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import generic
 
@@ -20,7 +21,8 @@ class DetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if self.object.voted_users.filter(pk=request.user.pk).exists:
+        if self.object.voted_users.filter(pk=request.user.pk).exists() or not \
+                request.user.is_authenticated:
             return redirect('polls:results', pk=self.object.pk)
         else:
             context = self.get_context_data(object=self.object)
@@ -43,9 +45,10 @@ def vote(request, question_id):
             'error_message': "You didn't select a choice.",
         })
     else:
-        selected_choice.votes += 1
+        selected_choice.votes= F('votes') + 1
+        selected_choice.save(update_fields=['votes'])
         question.voted_users.add(request.user)
-        selected_choice.save()
+        question.save()
         return redirect('polls:results', pk=question.id)
 
 
