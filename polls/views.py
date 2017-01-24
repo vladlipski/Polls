@@ -1,6 +1,5 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse, HttpResponseRedirect
-from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views import generic
 
 from .models import Question, Choice
@@ -19,12 +18,21 @@ class DetailView(generic.DetailView):
     model = Question
     template_name = 'polls/detail.html'
 
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object.voted_users.filter(pk=request.user.pk).exists:
+            return redirect('polls:results', pk=self.object.pk)
+        else:
+            context = self.get_context_data(object=self.object)
+            return self.render_to_response(context)
+
 
 class ResultsView(generic.DetailView):
     model = Question
     template_name = 'polls/results.html'
 
 
+@login_required()
 def vote(request, question_id):
     question = get_object_or_404(Question, pk=question_id)
     try:
@@ -36,7 +44,8 @@ def vote(request, question_id):
         })
     else:
         selected_choice.votes += 1
+        question.voted_users.add(request.user)
         selected_choice.save()
-        return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+        return redirect('polls:results', pk=question.id)
 
 
