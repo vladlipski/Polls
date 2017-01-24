@@ -1,7 +1,9 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import F
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views import generic
+from django.contrib.auth.models import User
 
 from .models import Question, Choice
 
@@ -32,6 +34,14 @@ class DetailView(generic.DetailView):
 class ResultsView(generic.DetailView):
     model = Question
     template_name = 'polls/results.html'
+
+
+class ProfileView(LoginRequiredMixin, generic.UpdateView):
+    model = User
+    fields = '__all__'
+
+    def get_object(self, queryset=None):
+        return self.request.user
 
 
 @login_required()
